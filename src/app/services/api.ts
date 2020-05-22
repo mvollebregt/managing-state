@@ -16,7 +16,6 @@ export class Api {
 
   getFilms(): Observable<Film[]> {
     return this.http.get<ApiResponse<Film>>('https://swapi.dev/api/films').pipe(
-      tap(() => console.log('Fetching films')),
       map(response => response.results)
     );
   }

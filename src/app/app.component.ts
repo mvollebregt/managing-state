@@ -5,6 +5,7 @@ import {Character} from './model/character';
 import {FormControl} from '@angular/forms';
 import {Selectors} from './services/selectors';
 import {State} from './services/state';
+import {WithLoadingIndicator} from './state-helpers/with-loading-indicator';
 
 @Component({
   selector: 'app-root',
@@ -12,8 +13,8 @@ import {State} from './services/state';
 })
 export class AppComponent {
 
-  films: Observable<Film[]>;
-  characters: Observable<Character[]>;
+  films: Observable<WithLoadingIndicator<Film[]>>;
+  characters: Observable<WithLoadingIndicator<Character[]>>;
   selectedFilm: Observable<Film>;
   selectedCharacter: Observable<Character>;
   filmControl = new FormControl();
