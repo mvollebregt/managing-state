@@ -5,10 +5,8 @@ export abstract class State<T> {
 
   private stateSubject = new BehaviorSubject<T>({} as T);
   private cachedGetters = {} as {[K in keyof Partial<T>]: Observable<T[K]>};
-  private getters: { [K in keyof Partial<T>]: () => Observable<T[K]> };
 
-  createQueries(getters?: {[K in keyof Partial<T>]: () => Observable<T[K]>}) {
-    this.getters = getters;
+  constructor(private getters?: {[K in keyof Partial<T>]: () => Observable<T[K]>}) {
   }
 
   // TODO: combined get

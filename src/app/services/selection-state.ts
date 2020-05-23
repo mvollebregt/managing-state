@@ -21,27 +21,15 @@ export class SelectionState extends State<{
 }> {
 
   constructor(private api: Api) {
-    super();
-    super.createQueries(this);
-  }
-
-  films() {
-    return this.api.getFilms();
-  }
-
-  charactersForSelectedFilm() {
-    return this.get('selectedFilm').pipe(switchMap(film =>
-      film && film.characters.length > 0 ?
-        combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
-        of([])));
-  }
-
-  selectedFilm() {
-    return this.getSelected(this.get('films'), this.get('selectedFilmId'));
-  }
-
-  selectedCharacter() {
-    return this.getSelected(this.get('charactersForSelectedFilm'), this.get('selectedCharacterId'));
+    super({
+      films: () => this.api.getFilms(),
+      charactersForSelectedFilm: () => this.get('selectedFilm').pipe(switchMap(film =>
+        film && film.characters.length > 0 ?
+          combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
+          of([]))),
+      selectedFilm: () => this.getSelected(this.get('films'), this.get('selectedFilmId')),
+      selectedCharacter: () => this.getSelected(this.get('charactersForSelectedFilm'), this.get('selectedCharacterId'))
+    });
   }
 
   private getSelected<T extends { url: string }>(
