@@ -5,19 +5,18 @@ import {WithLoadingIndicator} from './with-loading-indicator';
 export abstract class State<T> {
 
   private stateSubject = new BehaviorSubject<T>({} as T);
-  private loadingIndicators = {} as { [K in keyof Partial<T>]: BehaviorSubject<boolean> };
-  private cachedGetters = {} as { [K in keyof Partial<T>]: Observable<T[K] | WithLoadingIndicator<T[K]>> };
+  private loadingIndicators = {} as {[K in keyof Partial<T>]: BehaviorSubject<boolean>};
+  private cachedGetters = {} as {[K in keyof Partial<T>]: Observable<T[K] | WithLoadingIndicator<T[K]>>};
 
-  constructor(private getters?: { [K in keyof Partial<T>]: () => Observable<T[K] | WithLoadingIndicator<T[K]>> }) {
+  constructor(private getters?: {[K in keyof Partial<T>]: () => Observable<T[K] | WithLoadingIndicator<T[K]>>}) {
   }
 
   // TODO: combined get
   get<K extends keyof T>(property: K): Observable<T[K]> {
     if (!this.cachedGetters[property]) {
       if (this.getters && this.getters[property]) {
-        // TODO: shared? distinct until changed?
-        //       for caching options, including refreshing on a trigger,
-        //       see https://blog.thoughtram.io/angular/2018/03/05/advanced-caching-with-rxjs.html
+        // for more caching options, including refreshing on a trigger,
+        // see https://blog.thoughtram.io/angular/2018/03/05/advanced-caching-with-rxjs.html
         this.cachedGetters[property] = this.getters[property]().pipe(
           distinctUntilChanged(),
           shareReplay()
@@ -31,19 +30,20 @@ export abstract class State<T> {
       }
     }
     return this.cachedGetters[property].pipe(
-      tap(x => {
+      map(x => {
         if (this.hasLoadingIndicator(x)) {
-          this.getLoadingIndicator(property).next(x.___loading);
+          setTimeout(() =>
+            this.getLoadingIndicator(property).next(x.___loading)
+          );
+          return x.data;
+        } else {
+          return x;
         }
       }),
-      map(x => this.hasLoadingIndicator(x) ? x.data : x)
     );
   }
 
   loading(property: keyof T): Observable<boolean> {
-    // TODO: shared? distinct until changed?
-    //       for caching options, including refreshing on a trigger,
-    //       see https://blog.thoughtram.io/angular/2018/03/05/advanced-caching-with-rxjs.html
     return this.getLoadingIndicator(property).pipe(
       distinctUntilChanged(),
       shareReplay()
