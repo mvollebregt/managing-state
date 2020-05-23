@@ -5,30 +5,44 @@ import {Character} from '../model/character';
 import {map, shareReplay, switchMap} from 'rxjs/operators';
 import {Api} from './api';
 import {State} from '../state-helpers/state';
-import {resource} from '../state-helpers/resources';
-import {WithLoadingIndicator} from '../state-helpers/with-loading-indicator';
+import {loading} from '../state-helpers/loading';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SelectionState extends State<{
+
   selectedFilmId: string,
   selectedCharacterId: string,
   films: Film[],
   charactersForSelectedFilm: Character[],
   selectedFilm: Film,
   selectedCharacter: Character
+
 }> {
 
   constructor(private api: Api) {
     super({
-      films: () => this.api.getFilms(),
-      charactersForSelectedFilm: () => this.get('selectedFilm').pipe(switchMap(film =>
-        film && film.characters.length > 0 ?
-          combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
-          of([]))),
-      selectedFilm: () => this.getSelected(this.get('films'), this.get('selectedFilmId')),
-      selectedCharacter: () => this.getSelected(this.get('charactersForSelectedFilm'), this.get('selectedCharacterId'))
+
+      films: () =>
+        loading(
+          this.api.getFilms()
+        ),
+
+      charactersForSelectedFilm: () =>
+        this.get('selectedFilm').pipe(switchMap(film =>
+          loading(
+            film && film.characters.length > 0 ?
+              combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
+              of([] as Character[])))
+        ),
+
+      selectedFilm: () =>
+        this.getSelected(this.get('films'), this.get('selectedFilmId')),
+
+      selectedCharacter: () =>
+        this.getSelected(this.get('charactersForSelectedFilm'), this.get('selectedCharacterId'))
+
     });
   }
 

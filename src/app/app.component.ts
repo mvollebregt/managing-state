@@ -14,6 +14,8 @@ export class AppComponent {
 
   films: Observable<Film[]>;
   characters: Observable<Character[]>;
+  loadingFilms: Observable<boolean>;
+  loadingCharacters: Observable<boolean>;
   selectedFilm: Observable<Film>;
   selectedCharacter: Observable<Character>;
   filmControl = new FormControl();
@@ -22,6 +24,8 @@ export class AppComponent {
   constructor(state: SelectionState) {
     this.films = state.get('films');
     this.characters = state.get('charactersForSelectedFilm');
+    this.loadingFilms = state.loading('films');
+    this.loadingCharacters = state.loading('charactersForSelectedFilm');
     this.selectedFilm = state.get('selectedFilm');
     this.selectedCharacter = state.get('selectedCharacter');
     this.filmControl.valueChanges.subscribe(filmId => state.patch({selectedFilmId: filmId}));

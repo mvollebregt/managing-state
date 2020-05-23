@@ -1,4 +1,4 @@
 export interface WithLoadingIndicator<T> {
-  loading: boolean;
+  ___loading: boolean;
   data: T | undefined;
 }

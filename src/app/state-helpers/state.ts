@@ -1,12 +1,14 @@
 import {BehaviorSubject, concat, Observable, of} from 'rxjs';
 import {distinctUntilChanged, map, shareReplay, tap} from 'rxjs/operators';
+import {WithLoadingIndicator} from './with-loading-indicator';
 
 export abstract class State<T> {
 
   private stateSubject = new BehaviorSubject<T>({} as T);
-  private cachedGetters = {} as {[K in keyof Partial<T>]: Observable<T[K]>};
+  private loadingIndicators = {} as { [K in keyof Partial<T>]: BehaviorSubject<boolean> };
+  private cachedGetters = {} as { [K in keyof Partial<T>]: Observable<T[K] | WithLoadingIndicator<T[K]>> };
 
-  constructor(private getters?: {[K in keyof Partial<T>]: () => Observable<T[K]>}) {
+  constructor(private getters?: { [K in keyof Partial<T>]: () => Observable<T[K] | WithLoadingIndicator<T[K]>> }) {
   }
 
   // TODO: combined get
@@ -14,18 +16,52 @@ export abstract class State<T> {
     if (!this.cachedGetters[property]) {
       if (this.getters && this.getters[property]) {
         // TODO: shared? distinct until changed?
-        this.cachedGetters[property] = this.getters[property]();
+        //       for caching options, including refreshing on a trigger,
+        //       see https://blog.thoughtram.io/angular/2018/03/05/advanced-caching-with-rxjs.html
+        this.cachedGetters[property] = this.getters[property]().pipe(
+          distinctUntilChanged(),
+          shareReplay()
+        );
       } else {
         this.cachedGetters[property] = this.stateSubject.pipe(
           map(state => state[property]),
-          distinctUntilChanged()
+          distinctUntilChanged(),
+          shareReplay()
         );
       }
     }
-    return this.cachedGetters[property];
+    return this.cachedGetters[property].pipe(
+      tap(x => {
+        if (this.hasLoadingIndicator(x)) {
+          this.getLoadingIndicator(property).next(x.___loading);
+        }
+      }),
+      map(x => this.hasLoadingIndicator(x) ? x.data : x)
+    );
+  }
+
+  loading(property: keyof T): Observable<boolean> {
+    // TODO: shared? distinct until changed?
+    //       for caching options, including refreshing on a trigger,
+    //       see https://blog.thoughtram.io/angular/2018/03/05/advanced-caching-with-rxjs.html
+    return this.getLoadingIndicator(property).pipe(
+      distinctUntilChanged(),
+      shareReplay()
+    );
   }
 
   patch(changes: Partial<T>) {
     this.stateSubject.next({...this.stateSubject.value, ...changes});
+  }
+
+  private getLoadingIndicator(property: keyof T) {
+    if (!this.loadingIndicators[property]) {
+      this.loadingIndicators[property] = new BehaviorSubject(false);
+    }
+    return this.loadingIndicators[property];
+  }
+
+  private hasLoadingIndicator<S>(obj: S | WithLoadingIndicator<S>): obj is WithLoadingIndicator<S> {
+    return obj && (obj as WithLoadingIndicator<S>).___loading !== undefined;
   }
 }
