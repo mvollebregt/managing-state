@@ -1,18 +1,18 @@
 <div style="display: flex; flex-direction: column; max-width: 30rem;">
 
   <mat-form-field *ngIf="films | async as films">
-    <mat-label>{{ films.loading ? 'Loading...' : 'Select film' }}</mat-label>
+    <mat-label>{{ !films ? 'Loading...' : 'Select film' }}</mat-label>
     <mat-select [formControl]="filmControl">
-      <mat-option *ngFor="let film of films.data" [value]="film.url">
+      <mat-option *ngFor="let film of films" [value]="film.url">
         {{film.title}}
       </mat-option>
     </mat-select>
   </mat-form-field>
 
   <mat-form-field *ngIf="characters | async as characters">
-    <mat-label>{{ characters.loading ? 'Loading...' : 'Select character'}}</mat-label>
+    <mat-label>{{ !characters ? 'Loading...' : 'Select character'}}</mat-label>
     <mat-select [formControl]="characterControl">
-      <mat-option *ngFor="let character of characters.data" [value]="character.url">
+      <mat-option *ngFor="let character of characters" [value]="character.url">
         {{character.name}}
       </mat-option>
     </mat-select>

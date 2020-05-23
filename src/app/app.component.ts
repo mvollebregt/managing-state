@@ -12,18 +12,18 @@ import {WithLoadingIndicator} from './state-helpers/with-loading-indicator';
 })
 export class AppComponent {
 
-  films: Observable<WithLoadingIndicator<Film[]>>;
-  characters: Observable<WithLoadingIndicator<Character[]>>;
+  films: Observable<Film[]>;
+  characters: Observable<Character[]>;
   selectedFilm: Observable<Film>;
   selectedCharacter: Observable<Character>;
   filmControl = new FormControl();
   characterControl = new FormControl();
 
   constructor(state: SelectionState) {
-    this.films = state.getFilms();
-    this.characters = state.getCharactersForSelectedFilm();
-    this.selectedFilm = state.getSelectedFilm();
-    this.selectedCharacter = state.getSelectedCharacter();
+    this.films = state.get('films');
+    this.characters = state.get('charactersForSelectedFilm');
+    this.selectedFilm = state.get('selectedFilm');
+    this.selectedCharacter = state.get('selectedCharacter');
     this.filmControl.valueChanges.subscribe(filmId => state.patch({selectedFilmId: filmId}));
     this.characterControl.valueChanges.subscribe(characterId => state.patch({selectedCharacterId: characterId}));
   }

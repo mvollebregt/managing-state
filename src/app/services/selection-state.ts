@@ -13,40 +13,28 @@ import {WithLoadingIndicator} from '../state-helpers/with-loading-indicator';
 })
 export class SelectionState extends State<{
   selectedFilmId: string,
-  selectedCharacterId: string
+  selectedCharacterId: string,
+  films: Film[],
+  charactersForSelectedFilm: Character[],
+  selectedFilm: Film,
+  selectedCharacter: Character
 }> {
 
-  private films = resource(() => this.api.getFilms());
-  private charactersForSelectedFilm = resource(film =>
-      film && film.characters.length > 0 ?
-        combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
-        of([]),
-    this.getSelectedFilm()
-  );
-
   constructor(private api: Api) {
-    super();
-  }
-
-  getFilms(): Observable<WithLoadingIndicator<Film[]>> {
-    return this.films.get();
-  }
-
-  getCharactersForSelectedFilm(): Observable<WithLoadingIndicator<Character[]>> {
-    return this.charactersForSelectedFilm.get();
-  }
-
-  getSelectedFilm() {
-    return this.getSelected(this.getFilms(), this.get('selectedFilmId'));
-  }
-
-  getSelectedCharacter() {
-    return this.getSelected(this.getCharactersForSelectedFilm(), this.get('selectedCharacterId'));
+    super({
+      films: () => this.api.getFilms(),
+      charactersForSelectedFilm: () => this.get('selectedFilm').pipe(switchMap(film =>
+        film && film.characters.length > 0 ?
+          combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
+          of([]))),
+      selectedFilm: () => this.getSelected(this.get('films'), this.get('selectedFilmId')),
+      selectedCharacter: () => this.getSelected(this.get('charactersForSelectedFilm'), this.get('selectedCharacterId'))
+    });
   }
 
   private getSelected<T extends { url: string }>(
-    listObs: Observable<WithLoadingIndicator<T[]>>, idObs: Observable<string>): Observable<T | undefined> {
+    listObs: Observable<T[]>, idObs: Observable<string>): Observable<T | undefined> {
     return combineLatest([listObs, idObs]).pipe(
-      map(([list, id]) => list.data && list.data.find(film => film.url === id)));
+      map(([list, id]) => list && list.find(film => film.url === id)));
   }
 }

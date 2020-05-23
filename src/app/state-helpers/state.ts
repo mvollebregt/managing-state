@@ -4,13 +4,25 @@ import {distinctUntilChanged, map, shareReplay, tap} from 'rxjs/operators';
 export abstract class State<T> {
 
   private stateSubject = new BehaviorSubject<T>({} as T);
+  private cachedGetters = {} as {[K in keyof Partial<T>]: Observable<T[K]>};
+
+  constructor(private getters?: {[K in keyof Partial<T>]: () => Observable<T[K]>}) {
+  }
 
   // TODO: combined get
-  get(property: keyof T) {
-    return this.stateSubject.pipe(
-      map(state => state[property]),
-      distinctUntilChanged()
-    );
+  get<K extends keyof T>(property: K): Observable<T[K]> {
+    if (!this.cachedGetters[property]) {
+      if (this.getters && this.getters[property]) {
+        // TODO: shared? distinct until changed?
+        this.cachedGetters[property] = this.getters[property]();
+      } else {
+        this.cachedGetters[property] = this.stateSubject.pipe(
+          map(state => state[property]),
+          distinctUntilChanged()
+        );
+      }
+    }
+    return this.cachedGetters[property];
   }
 
   patch(changes: Partial<T>) {
