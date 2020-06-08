@@ -33,7 +33,10 @@ export class CharactersService extends StoreService<CharactersState> {
 
   readonly charactersForSelectedFilm = this.load(
     (film: Film) => film && film.characters.length > 0 ?
-      combineLatest(film.characters.map(characterUrl => this.api.getCharacter(characterUrl))) :
+      combineLatest(film.characters.map(characterUrl =>
+        this.query.hasEntity(characterUrl) ?
+          of(this.query.getEntity(characterUrl)) :
+          this.api.getCharacter(characterUrl))) :
       of([] as Character[]),
     this.filmsService.selectedFilm
   );
