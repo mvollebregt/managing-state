@@ -22,7 +22,7 @@ export class StoreService<T> {
         })),
         getEntities(...dp).pipe(
           withTransaction(entities => {
-            this.store.set(entities);
+            this.store.upsertMany(entities);
             this.store.setLoading(false);
           })
         )
