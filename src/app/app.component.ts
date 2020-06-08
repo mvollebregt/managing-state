@@ -3,8 +3,8 @@ import {Observable} from 'rxjs';
 import {Film} from './model/film';
 import {Character} from './model/character';
 import {FormControl} from '@angular/forms';
-import {SelectionState} from './services/selection-state';
-import {WithLoadingIndicator} from './state-helpers/with-loading-indicator';
+import {FilmsService} from './services/films.service';
+import {CharactersService} from './services/characters.service';
 
 @Component({
   selector: 'app-root',
@@ -21,15 +21,18 @@ export class AppComponent {
   filmControl = new FormControl();
   characterControl = new FormControl();
 
-  constructor(state: SelectionState) {
-    this.films = state.get('films');
-    this.characters = state.get('charactersForSelectedFilm');
-    this.loadingFilms = state.loading('films');
-    this.loadingCharacters = state.loading('charactersForSelectedFilm');
-    this.selectedFilm = state.get('selectedFilm');
-    this.selectedCharacter = state.get('selectedCharacter');
-    this.filmControl.valueChanges.subscribe(filmId => state.patch({selectedFilmId: filmId}));
-    this.characterControl.valueChanges.subscribe(characterId => state.patch({selectedCharacterId: characterId}));
+  constructor(
+    filmsService: FilmsService,
+    charactersService: CharactersService
+    ) {
+    this.films = filmsService.films;
+    this.characters = charactersService.charactersForSelectedFilm;
+    this.loadingFilms = filmsService.loading;
+    this.loadingCharacters = charactersService.loading;
+    this.selectedFilm = filmsService.selectedFilm;
+    this.selectedCharacter = charactersService.selectedCharacter;
+    this.filmControl.valueChanges.subscribe(selectedFilmId => filmsService.setSelectedFilm(selectedFilmId));
+    this.characterControl.valueChanges.subscribe(selectedCharacterId => charactersService.setSelectedCharacter(selectedCharacterId));
   }
 
 }
