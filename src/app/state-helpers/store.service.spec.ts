@@ -75,8 +75,13 @@ describe('StoreService', () => {
     expect([loading, entities]).toEqual([false, result]);
   });
 
-  it('should put cached entities in the store', () => {
-    // TODO: check contents of store (e.g. active item).
+  it('should put cached entities in the store', done => {
+    subscriptions.push(service.testEntities.subscribe(value => entities = value));
+    service.mockSubject.next(result);
+    service.query.selectAll().subscribe(allInStore => {
+      expect(allInStore).toEqual(result);
+      done();
+    });
   });
 
   it('should do something with dependencies?', () => {
