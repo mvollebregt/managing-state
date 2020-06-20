@@ -32,8 +32,6 @@ export class FilmsService extends StoreService<FilmsState> {
 
   readonly selectedFilm = this.query.selectActive();
 
-  readonly loading = this.query.selectLoading();
-
   setSelectedFilm(selectedFilmId: string) {
     this.filmsStore.setActive(selectedFilmId);
   }
