@@ -6,7 +6,7 @@ import {FilmsService} from './films.service';
 import {Injectable} from '@angular/core';
 import {map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 import {combineLatest, concat, Observable, of} from 'rxjs';
-import {StoreService} from '../state-helpers/store.service';
+import {EntityService} from '../state-helpers/entity.service';
 import {produce} from 'immer';
 
 interface CharactersState extends EntityState<Character, string> {
@@ -26,7 +26,7 @@ class CharactersStore extends EntityStore<CharactersState> {
 }
 
 @Injectable({providedIn: 'root'})
-export class CharactersService extends StoreService<CharactersState> {
+export class CharactersService extends EntityService<CharactersState> {
 
   constructor(
     private charactersStore: CharactersStore,

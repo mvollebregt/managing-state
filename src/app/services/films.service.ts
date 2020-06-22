@@ -3,7 +3,7 @@ import {Api} from './api';
 import {ActiveState, cacheable, EntityState, EntityStore, Query, QueryEntity, Store, StoreConfig} from '@datorama/akita';
 import {shareReplay, tap} from 'rxjs/operators';
 import {Film} from '../model/film';
-import {StoreService} from '../state-helpers/store.service';
+import {EntityService} from '../state-helpers/entity.service';
 import {concat, of} from 'rxjs';
 
 interface FilmsState extends EntityState<Film, string>, ActiveState {
@@ -19,7 +19,7 @@ class FilmsStore extends EntityStore<FilmsState> {
 }
 
 @Injectable({providedIn: 'root'})
-export class FilmsService extends StoreService<FilmsState> {
+export class FilmsService extends EntityService<FilmsState> {
 
   constructor(
     private filmsStore: FilmsStore,

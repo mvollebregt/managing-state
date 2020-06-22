@@ -2,7 +2,7 @@ import {EntityStore, getEntityType, QueryEntity, withTransaction} from '@datoram
 import {combineLatest, concat, Observable, of} from 'rxjs';
 import {shareReplay, switchMap} from 'rxjs/operators';
 
-export class StoreService<T> {
+export class EntityService<T> {
 
   protected query: QueryEntity<T>;
 
@@ -45,6 +45,7 @@ export class StoreService<T> {
           })
         )
       ))
-    ).pipe(shareReplay());
+    ).pipe(shareReplay()
+    );
   }
 }
