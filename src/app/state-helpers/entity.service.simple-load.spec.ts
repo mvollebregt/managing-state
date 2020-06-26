@@ -43,84 +43,100 @@ class TestEntityService extends EntityService<TestEntityState> {
 
 describe('EntityService simple load', () => {
 
-  const result = [{id: 1}, {id: 2}];
+  const returnValue = [{id: 1}, {id: 2}];
+  const firstEmptyThenResult = [[], returnValue];
+  const immediateResult = [returnValue];
+
   const subscriptions: Subscription[] = [];
+
+  let emissions: TestEntity[][];
+  let secondEms: TestEntity[][];
+  let loading: boolean | undefined;
   let store: TestEntityStore;
   let service: TestEntityService;
-  let loading: boolean | undefined;
-  let entities: TestEntity[] | undefined;
-  let entitiesOfSecondCall: TestEntity[] | undefined;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
     store = TestBed.inject(TestEntityStore);
     service = new TestEntityService(store);
     subscriptions.push(service.loading.subscribe(value => loading = value));
+    emissions = [];
+    secondEms = [];
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
     expect(service.query).toBeTruthy();
     expect(service.query.__store__).toEqual(store);
-    expect(loading).toBe(true);
+    expect(loading).toBe(false);
   });
 
   it('should load entities', () => {
-    subscriptions.push(service.getTestEntities().subscribe(value => entities = value));
-    expect([loading, entities]).toEqual([true, []]);
-    service.mockedHttpClient.emit(result);
-    expect([loading, entities]).toEqual([false, result]);
+    subscriptions.push(service.getTestEntities().subscribe(value => emissions.push(value)));
+    expect([loading, emissions]).toEqual([true, [[]]]);
+    service.mockedHttpClient.emit(returnValue);
+    expect([loading, emissions]).toEqual([false, firstEmptyThenResult]);
   });
 
   it('should put entities in the store', done => {
     subscriptions.push(service.getTestEntities().subscribe());
-    service.mockedHttpClient.emit(result);
+    service.mockedHttpClient.emit(returnValue);
     subscriptions.push(service.query.selectAll().subscribe(allInStore => {
-      expect(allInStore).toEqual(result);
+      expect(allInStore).toEqual(returnValue);
       done();
     }));
   });
 
   it('should share two simultaneous subscriptions to the same observable', () => {
     const observable = service.getTestEntities();
-    subscriptions.push(observable.subscribe(value => entities = value));
-    subscriptions.push(observable.subscribe(value => entitiesOfSecondCall = value));
-    service.mockedHttpClient.emit(result);
-    expect([loading, entities, entitiesOfSecondCall]).toEqual([false, result, result]);
+    subscriptions.push(observable.subscribe(value => emissions.push(value)));
+    subscriptions.push(observable.subscribe(value => secondEms.push(value)));
+    service.mockedHttpClient.emit(returnValue);
+    expect(loading).toEqual(false);
+    expect(emissions).toEqual(firstEmptyThenResult);
+    expect(secondEms).toEqual(firstEmptyThenResult);
     expect(service.mockedHttpClient.callCount).toBe(1);
   });
 
   it('should share two simultaneous subscriptions to different observables', () => {
-    subscriptions.push(service.getTestEntities().subscribe(value => entities = value));
-    subscriptions.push(service.getTestEntities().subscribe(value => entitiesOfSecondCall = value));
-    service.mockedHttpClient.emit(result);
-    expect([loading, entities, entitiesOfSecondCall]).toEqual([false, result, result]);
+    subscriptions.push(service.getTestEntities().subscribe(value => emissions.push(value)));
+    subscriptions.push(service.getTestEntities().subscribe(value => secondEms.push(value)));
+    service.mockedHttpClient.emit(returnValue);
+    expect(loading).toEqual(false);
+    expect(emissions).toEqual(firstEmptyThenResult);
+    expect(secondEms).toEqual(firstEmptyThenResult);
     expect(service.mockedHttpClient.callCount).toBe(1);
   });
 
   it('should share a second call to the same observable after it has completed', () => {
     const observable = service.getTestEntities();
-    subscriptions.push(observable.subscribe(value => entities = value));
-    service.mockedHttpClient.emit(result);
-    subscriptions.push(observable.subscribe(value => entitiesOfSecondCall = value));
-    expect([loading, entities, entitiesOfSecondCall]).toEqual([false, result, result]);
+    subscriptions.push(observable.subscribe(value => emissions.push(value)));
+    service.mockedHttpClient.emit(returnValue);
+    subscriptions.push(observable.subscribe(value => secondEms.push(value)));
+    expect(loading).toEqual(false);
+    expect(emissions).toEqual(firstEmptyThenResult);
+    expect(secondEms).toEqual(immediateResult);
     expect(service.mockedHttpClient.callCount).toBe(1);
   });
 
   it('should share a second call to a different observable after it has completed', () => {
-    subscriptions.push(service.getTestEntities().subscribe(value => entities = value));
-    service.mockedHttpClient.emit(result);
-    subscriptions.push(service.getTestEntities().subscribe(value => entitiesOfSecondCall = value));
-    expect([loading, entities, entitiesOfSecondCall]).toEqual([false, result, result]);
+    subscriptions.push(service.getTestEntities().subscribe(value => emissions.push(value)));
+    service.mockedHttpClient.emit(returnValue);
+    subscriptions.push(service.getTestEntities().subscribe(value => secondEms.push(value)));
+    expect(loading).toEqual(false);
+    expect(emissions).toEqual(firstEmptyThenResult);
+    expect(secondEms).toEqual(immediateResult);
     expect(service.mockedHttpClient.callCount).toBe(1);
   });
 
   it('should share a second call to a different observable after it was unsubscribed', () => {
-    const subscription = service.getTestEntities().subscribe(value => entities = value);
-    service.mockedHttpClient.emit(result);
+    const subscription = service.getTestEntities().subscribe(value => emissions.push(value));
+    service.mockedHttpClient.emit(returnValue);
     subscription.unsubscribe();
-    subscriptions.push(service.getTestEntities().subscribe(value => entitiesOfSecondCall = value));
-    expect([loading, entities, entitiesOfSecondCall]).toEqual([false, result, result]);
+    subscriptions.push(service.getTestEntities().subscribe(value => secondEms.push(value)));
+    expect(loading).toEqual(false);
+    expect(emissions).toEqual(firstEmptyThenResult);
+    expect(secondEms).toEqual(immediateResult);
     expect(service.mockedHttpClient.callCount).toBe(1);
   });
 
