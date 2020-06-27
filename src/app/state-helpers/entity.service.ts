@@ -14,6 +14,10 @@ export class EntityService<T> {
     this.store.setLoading(false);
   }
 
+  expireCache() {
+    this.store.setHasCache(false);
+  }
+
   protected load(
     getEntities: () => Observable<getEntityType<T>[]>): Observable<getEntityType<T>[]>;
   protected load<A>(
@@ -39,7 +43,7 @@ export class EntityService<T> {
         // If the cache is empty and we are not already loading, trigger a new load on subscribe
         if (!loading && !this.query.getHasCache()) {
           applyTransaction(() => {
-            this.store.remove();
+            // this.store.remove(); // only remove values when deps have changed, not on plain refresh
             this.store.setLoading(true);
           });
           getEntities(...dp).subscribe(entities =>
