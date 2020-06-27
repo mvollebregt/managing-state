@@ -7,15 +7,14 @@ import {TestEntityService} from './test-entity-service';
 describe('EntityService simple load', () => {
 
   const returnValue = [{id: 1}, {id: 2}];
-  const firstEmptyThenResult = [[], returnValue];
   const immediateResult = [returnValue];
+  const firstEmptyThenResult = [[], returnValue];
 
   const subscriptions: Subscription[] = [];
 
   let emissions: TestEntity[][];
   let secondEms: TestEntity[][];
   let loading: boolean | undefined;
-  // let store: TestEntityStore;
   let service: TestEntityService;
 
   beforeEach(() => {
