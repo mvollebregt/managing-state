@@ -7,39 +7,8 @@ import {Observable, Subject, Subscription} from 'rxjs';
 import {take, tap} from 'rxjs/operators';
 import {Mock} from 'protractor/built/driverProviders';
 import {HttpClientMock} from './http-client-mock';
-
-// Define the entity.
-interface TestEntity {
-  id: number;
-}
-
-// Define the state interface.
-interface TestEntityState extends EntityState<TestEntity, number> {
-}
-
-// Declare the store.
-@Injectable({providedIn: 'root'})
-@StoreConfig({name: 'test-entity', idKey: 'id'})
-class TestEntityStore extends EntityStore<TestEntityState> {
-  constructor() {
-    super();
-  }
-}
-
-// Declare the service.
-class TestEntityService extends EntityService<TestEntityState> {
-  // For the sake of testing, we make the query property public.
-  query: QueryEntity<TestEntityState>;
-  mockedHttpClient = new HttpClientMock<TestEntity[]>();
-
-  constructor(protected store: TestEntityStore) {
-    super(store);
-  }
-
-  getTestEntities() {
-    return this.load(() => this.mockedHttpClient.get());
-  }
-}
+import {TestEntity} from './test-entity';
+import {TestEntityService} from './test-entity-service';
 
 describe('EntityService expire cache', () => {
 
@@ -47,20 +16,17 @@ describe('EntityService expire cache', () => {
   const secondResult = [{id: 3}, {id: 4}];
   const firstEmptyThenResult = [[], firstResult];
   const firstEmptyThenTwoResults = [[], firstResult, secondResult];
-  const immediateResult = [firstResult];
 
   const subscriptions: Subscription[] = [];
 
   let emissions: TestEntity[][];
   let secondEms: TestEntity[][];
   let loading: boolean | undefined;
-  let store: TestEntityStore;
   let service: TestEntityService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    store = TestBed.inject(TestEntityStore);
-    service = new TestEntityService(store);
+    service = TestBed.inject(TestEntityService);
     subscriptions.push(service.loading.subscribe(value => loading = value));
     emissions = [];
     secondEms = [];
