@@ -1,6 +1,6 @@
 import {applyTransaction, EntityStore, getEntityType, QueryEntity, withTransaction} from '@datorama/akita';
 import {combineLatest, concat, Observable, of} from 'rxjs';
-import {filter, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
+import {filter, shareReplay, switchMap, switchMapTo, tap, withLatestFrom} from 'rxjs/operators';
 
 export class EntityService<T> {
 
@@ -33,8 +33,9 @@ export class EntityService<T> {
 
   private doLoad(deps: Observable<any>[],
                  getEntities: (...deps: any[]) => Observable<getEntityType<T>[]>): Observable<getEntityType<T>[]> {
-    return combineLatest([this.loading, ...deps]).pipe(
-      switchMap(([loading, ...dp]) => {
+    return (deps.length > 0 ? combineLatest(deps) : of([])).pipe(
+      withLatestFrom(this.loading),
+      tap(([dp, loading]) => {
         // If the cache is empty and we are not already loading, trigger a new load on subscribe
         if (!loading && !this.query.getHasCache()) {
           applyTransaction(() => {
@@ -46,12 +47,9 @@ export class EntityService<T> {
               this.store.set(entities);
             })
           );
-          // Prevent a double emission of [] caused by the first transaction
-          return this.loading.pipe(filter(ld => !ld), switchMapTo(this.query.selectAll()));
-        } else {
-          return this.query.selectAll();
         }
-      })
+      }),
+      switchMapTo(this.query.selectAll())
     );
   }
 }
