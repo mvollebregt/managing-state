@@ -1,6 +1,6 @@
 import {ResourceCache} from './resource-cache';
 import {Observable} from 'rxjs';
-import {applyTransaction, EntityStore, getEntityType, QueryEntity} from '@datorama/akita';
+import {EntityStore, getEntityType, QueryEntity} from '@datorama/akita';
 
 export class AkitaAllEntitiesResourceCache<T> implements ResourceCache<getEntityType<T>[]> {
 
