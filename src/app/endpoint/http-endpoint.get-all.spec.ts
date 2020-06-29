@@ -3,34 +3,8 @@ import {TestBed} from '@angular/core/testing';
 import {Observable, Subscription} from 'rxjs';
 import {TestEntity} from './test-entity';
 import {HttpClientTestingModule, HttpTestingController} from '@angular/common/http/testing';
-import {HttpEndpoint} from './http-endpoint';
-import {AkitaHttpEndpointCache} from './akita-http-endpoint-cache';
-import {EntityState, EntityStore, QueryEntity, StoreConfig} from '@datorama/akita';
-import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
-
-const baseUrl = 'baseUrl';
-
-interface TestEntityState extends EntityState<TestEntity, number> {
-}
-
-// Declare the store.
-@Injectable({providedIn: 'root'})
-@StoreConfig({name: 'test-entity', idKey: 'id'})
-class TestEntityStore extends EntityStore<TestEntityState> {
-  constructor() {
-    super();
-  }
-}
-
-@Injectable({providedIn: 'root'})
-class TestEntityHttpEndpoint extends HttpEndpoint<TestEntity> {
-
-  constructor(httpClient: HttpClient, testEntityStore: TestEntityStore) {
-    super(httpClient, baseUrl, new AkitaHttpEndpointCache(testEntityStore));
-  }
-
-}
+import {QueryEntity} from '@datorama/akita';
+import {TestEntityHttpEndpoint, TestEntityStore} from './test-entity-http-endpoint';
 
 describe('HttpEndpoint.getAll()', () => {
 
@@ -64,7 +38,7 @@ describe('HttpEndpoint.getAll()', () => {
 
   it('should load entities', () => {
     subscriptions.push(endpoint.getAll().subscribe(value => emissions.push(value)));
-    const request = httpTestingController.expectOne(baseUrl);
+    const request = httpTestingController.expectOne('baseUrl');
     expect([loading, emissions]).toEqual([true, [[]]]);
     request.flush(returnValue);
     expect([loading, emissions]).toEqual([false, firstEmptyThenResult]);
@@ -73,7 +47,7 @@ describe('HttpEndpoint.getAll()', () => {
   it('should put entities in the store', done => {
     const store = TestBed.inject(TestEntityStore);
     subscriptions.push(endpoint.getAll().subscribe());
-    const request = httpTestingController.expectOne(baseUrl);
+    const request = httpTestingController.expectOne('baseUrl');
     request.flush(returnValue);
     subscriptions.push(new QueryEntity(store).selectAll().subscribe(allInStore => {
       expect(allInStore).toEqual(returnValue);
@@ -84,7 +58,7 @@ describe('HttpEndpoint.getAll()', () => {
   function testSimultaneousSubscriptions(first: Observable<TestEntity[]>, second: Observable<TestEntity[]>) {
     subscriptions.push(first.subscribe(value => emissions.push(value)));
     subscriptions.push(second.subscribe(value => secondEms.push(value)));
-    const request = httpTestingController.expectOne(baseUrl);
+    const request = httpTestingController.expectOne('baseUrl');
     request.flush(returnValue);
     expect(loading).toEqual(false);
     expect(emissions).toEqual(firstEmptyThenResult);
@@ -103,7 +77,7 @@ describe('HttpEndpoint.getAll()', () => {
 
   function testSubsequentSubscriptions(first: Observable<TestEntity[]>, second: Observable<TestEntity[]>) {
     subscriptions.push(first.subscribe(value => emissions.push(value)));
-    const request = httpTestingController.expectOne(baseUrl);
+    const request = httpTestingController.expectOne('baseUrl');
     request.flush(returnValue);
     subscriptions.push(second.subscribe(value => secondEms.push(value)));
     expect(loading).toEqual(false);
@@ -123,7 +97,7 @@ describe('HttpEndpoint.getAll()', () => {
 
   it('should share a second call to a different observable after it was unsubscribed', () => {
     const subscription = endpoint.getAll().subscribe(value => emissions.push(value));
-    const request = httpTestingController.expectOne(baseUrl);
+    const request = httpTestingController.expectOne('baseUrl');
     request.flush(returnValue);
     subscription.unsubscribe();
     subscriptions.push(endpoint.getAll().subscribe(value => secondEms.push(value)));

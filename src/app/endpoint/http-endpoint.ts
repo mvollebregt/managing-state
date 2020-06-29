@@ -17,4 +17,8 @@ export abstract class HttpEndpoint<T> {
   isLoading(): Observable<boolean> {
     return this.cache.loading;
   }
+
+  expireCache() {
+    this.cache.expire();
+  }
 }

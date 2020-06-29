@@ -10,6 +10,11 @@ export class AkitaHttpEndpointCache<T> implements HttpEndpointCache<getEntityTyp
   }
 
   allEntitiesCache = new AkitaAllEntitiesResourceCache<T>(this.store, this.query);
+
   loading = this.query.selectLoading();
+
+  expire(): void {
+    this.store.setHasCache(false);
+  }
 
 }
