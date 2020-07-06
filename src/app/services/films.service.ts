@@ -1,12 +1,15 @@
 import {Injectable} from '@angular/core';
 import {Api} from './api';
-import {ActiveState, cacheable, EntityState, EntityStore, Query, QueryEntity, Store, StoreConfig} from '@datorama/akita';
-import {shareReplay, tap} from 'rxjs/operators';
+import {ActiveState, EntityState, EntityStore, QueryEntity, StoreConfig} from '@datorama/akita';
 import {Film} from '../model/film';
-import {EntityService} from '../state-helpers/entity.service';
-import {concat, of} from 'rxjs';
+import {Observable} from 'rxjs';
+import {load} from '../endpoint/load';
+import {AkitaAllEntitiesCache} from '../endpoint/akita-all-entities-cache';
 
 interface FilmsState extends EntityState<Film, string>, ActiveState {
+
+  selectedFilmId: string;
+
 }
 
 @Injectable({providedIn: 'root'})
@@ -19,18 +22,30 @@ class FilmsStore extends EntityStore<FilmsState> {
 }
 
 @Injectable({providedIn: 'root'})
-export class FilmsService extends EntityService<FilmsState> {
+export class FilmsService {
+
+  private readonly query: QueryEntity<FilmsState>;
+  private readonly cache: AkitaAllEntitiesCache<FilmsState>;
 
   constructor(
     private filmsStore: FilmsStore,
     private api: Api
   ) {
-    super(filmsStore);
+    this.query = new QueryEntity(filmsStore);
+    this.cache = new AkitaAllEntitiesCache(filmsStore, this.query);
   }
 
-  readonly films = this.load(() => this.api.getFilms());
+  get films(): Observable<Film[]> {
+    return load(() => this.api.getFilms(), this.cache);
+  }
 
-  readonly selectedFilm = this.query.selectActive();
+  get selectedFilm(): Observable<Film> {
+    return this.query.selectActive();
+  }
+
+  get loading(): Observable<boolean> {
+    return this.cache.isLoading();
+  }
 
   setSelectedFilm(selectedFilmId: string) {
     this.filmsStore.setActive(selectedFilmId);

@@ -1,9 +1,10 @@
 import {EntityState, EntityStore, StoreConfig} from '@datorama/akita';
 import {TestEntity} from './test-entity';
 import {Injectable} from '@angular/core';
-import {HttpEndpoint} from './http-endpoint';
 import {HttpClient} from '@angular/common/http';
-import {AkitaHttpEndpointCache} from './akita-http-endpoint-cache';
+import {Observable} from 'rxjs';
+import {load} from './load';
+import {AkitaAllEntitiesCache} from './akita-all-entities-cache';
 
 interface TestEntityState extends EntityState<TestEntity, number> {
 }
@@ -19,10 +20,24 @@ export class TestEntityStore extends EntityStore<TestEntityState> {
 
 // Declare the endpoint.
 @Injectable({providedIn: 'root'})
-export class TestEntityHttpEndpoint extends HttpEndpoint<TestEntity> {
+export class TestEntityHttpEndpoint {
 
-  constructor(httpClient: HttpClient, testEntityStore: TestEntityStore) {
-    super(httpClient, 'baseUrl', new AkitaHttpEndpointCache(testEntityStore));
+  private readonly baseUrl = 'baseUrl';
+  private readonly cache: AkitaAllEntitiesCache<TestEntityState>;
+
+  constructor(private http: HttpClient, testEntityStore: TestEntityStore) {
+    this.cache = new AkitaAllEntitiesCache(testEntityStore);
   }
 
+  getAll(): Observable<TestEntity[]> {
+    return load(() => this.http.get<TestEntity[]>(this.baseUrl), this.cache);
+  }
+
+  isLoading(): Observable<boolean> {
+    return this.cache.isLoading();
+  }
+
+  expireCache() {
+    this.cache.setHasCache(false);
+  }
 }

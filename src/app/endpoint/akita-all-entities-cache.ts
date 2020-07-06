@@ -2,10 +2,11 @@ import {ResourceCache} from './resource-cache';
 import {Observable} from 'rxjs';
 import {EntityStore, getEntityType, QueryEntity} from '@datorama/akita';
 
-export class AkitaAllEntitiesResourceCache<T> implements ResourceCache<getEntityType<T>[]> {
+export class AkitaAllEntitiesCache<T> implements ResourceCache<getEntityType<T>[]> {
 
   constructor(private store: EntityStore<T>,
-              private query: QueryEntity<T>) {
+              private query: QueryEntity<T> = new QueryEntity(store)) {
+    this.store.setLoading(false);
   }
 
   getCachedData(): Observable<getEntityType<T>[]> {
@@ -21,7 +22,7 @@ export class AkitaAllEntitiesResourceCache<T> implements ResourceCache<getEntity
   }
 
   setHasCache(hasCache: boolean) {
-    this.store.setHasCache(true);
+    this.store.setHasCache(hasCache);
   }
 
 
@@ -30,6 +31,6 @@ export class AkitaAllEntitiesResourceCache<T> implements ResourceCache<getEntity
   }
 
   setLoading(loading: boolean): void {
-    this.store.setLoading(true);
+    this.store.setLoading(loading);
   }
 }

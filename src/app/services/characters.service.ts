@@ -1,43 +1,49 @@
-import {ActiveState, cacheable, EntityState, EntityStore, EntityUIQuery, QueryEntity, StoreConfig} from '@datorama/akita';
-import {Film} from '../model/film';
+import {EntityState, EntityStore, QueryEntity, StoreConfig} from '@datorama/akita';
 import {Character} from '../model/character';
 import {Api} from './api';
 import {FilmsService} from './films.service';
 import {Injectable} from '@angular/core';
-import {map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
+import {filter, map, shareReplay, switchMap} from 'rxjs/operators';
 import {combineLatest, concat, Observable, of} from 'rxjs';
-import {EntityService} from '../state-helpers/entity.service';
 import {produce} from 'immer';
+import {load} from '../endpoint/load';
+import {ResourceCache} from '../endpoint/resource-cache';
 
-interface CharactersState extends EntityState<Character, string> {
-  loadingItems: number;
+interface Cached<T> {
+  id: string;
+  data: T;
+  timestamp: number;
+  loading: boolean;
+}
+
+interface CharactersState extends EntityState<Cached<Character>, string> {
   selectedId: string;
 }
 
 @Injectable({providedIn: 'root'})
-@StoreConfig({name: 'characters', idKey: 'url', producerFn: produce})
+@StoreConfig({name: 'characters', idKey: 'id', producerFn: produce})
 class CharactersStore extends EntityStore<CharactersState> {
 
   constructor() {
-    super({
-      loadingItems: 0
-    });
+    super();
   }
 }
 
 @Injectable({providedIn: 'root'})
-export class CharactersService extends EntityService<CharactersState> {
+export class CharactersService {
+
+  private query: QueryEntity<CharactersState>;
 
   constructor(
     private charactersStore: CharactersStore,
     private filmsService: FilmsService,
     private api: Api
   ) {
-    super(charactersStore);
+    this.query = new QueryEntity(this.charactersStore);
   }
 
-  readonly charactersForSelectedFilm =
-    this.filmsService.selectedFilm.pipe(
+  get charactersForSelectedFilm() {
+    return this.filmsService.selectedFilm.pipe(
       switchMap(film => concat(
         of([]),
         film && film.characters.length > 0 ?
@@ -46,37 +52,62 @@ export class CharactersService extends EntityService<CharactersState> {
       )),
       shareReplay()
     );
+  }
 
-  readonly selectedCharacter = combineLatest([
-    this.charactersForSelectedFilm,
-    this.query.select('selectedId')
-  ]).pipe(
-    map(([characters, selectedId]) => characters.find(character => character.url === selectedId)),
-    shareReplay()
-  );
-
-  readonly loading = this.query.select('loadingItems').pipe(map(num => num >= 1));
+  get selectedCharacter() {
+    return combineLatest([
+      this.charactersForSelectedFilm,
+      this.query.select('selectedId')
+    ]).pipe(
+      map(([characters, selectedId]) => characters.find(character => character.url === selectedId)),
+      shareReplay()
+    );
+  }
 
   getCharacter(id: string): Observable<Character> {
-    if (this.query.hasEntity(id)) {
-      return this.query.selectEntity(id);
-    } else {
-      this.store.update(state => {
-        state.loadingItems++;
-      });
-      return this.api.getCharacter(id).pipe(
-        tap(character => {
-          this.store.add(character);
-          this.store.update(state => {
-            state.loadingItems--;
-          });
-        }),
-        switchMapTo(this.query.selectEntity(id))
-      );
-    }
+    return load(() => this.api.getCharacter(id), this.cache(id));
   }
 
   setSelectedCharacter(selectedCharacterId: string) {
-    this.charactersStore.update(state => { state.selectedId = selectedCharacterId; } );
+    this.charactersStore.update(state => {
+      state.selectedId = selectedCharacterId;
+    });
+  }
+
+  get loading(): Observable<boolean> {
+    return this.query.selectAll().pipe(map(all => all.some(item => item.loading)));
+  }
+
+  private cache(id: string): ResourceCache<Character> {
+    const self = this;
+    const entity = self.query.selectEntity(id);
+    return {
+      getCachedData(): Observable<Character> {
+        return entity.pipe(map(cachedEntity => cachedEntity && cachedEntity.data), filter(data => !!data));
+      }, setCachedData(data: Character): void {
+        self.charactersStore.upsert(id, {
+          id,
+          data,
+          loading: false,
+          timestamp: Date.now()
+        });
+      }, hasCache(): Observable<boolean> {
+        return entity.pipe(
+          map(cachedEntity => cachedEntity && cachedEntity.timestamp &&
+            (!self.charactersStore.cacheConfig || !self.charactersStore.cacheConfig.ttl ||
+              (cachedEntity.timestamp - Date.now() < self.charactersStore.cacheConfig.ttl)))
+        );
+      }, isLoading(): Observable<boolean> {
+        return entity.pipe(map(cachedEntity => cachedEntity && cachedEntity.loading));
+      }, setHasCache(hasCache: boolean): void {
+        if (hasCache) {
+          self.charactersStore.upsert(id, {timestamp: Date.now()});
+        } else {
+          self.charactersStore.upsert(id, {timestamp: undefined});
+        }
+      }, setLoading(loading: boolean): void {
+        self.charactersStore.upsert(id, {loading});
+      }
+    };
   }
 }
