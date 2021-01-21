@@ -26,7 +26,7 @@
     "@briebug/jest-schematic": "^2.1.1",
     "@datorama/akita": "^4.23.2",
     "@datorama/akita-ngdevtools": "^5.0.3",
-    "immer": "^6.0.9",
+    "immer": "^8.0.1",
     "rxjs": "~6.5.4",
     "tslib": "^1.10.0",
     "zone.js": "~0.10.2"
